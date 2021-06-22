@@ -2,6 +2,8 @@ package com.codeman.closeframework.util;
 
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.codeman.closeframework.servlet.InitServlet;
+import com.codeman.closeframework.util.balance.LoadBalancer;
+import com.codeman.closeframework.util.balance.RotateLoadBalancer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -10,6 +12,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -42,8 +45,6 @@ public class ZookeeperUtil {
     private String parentPath;
     @Value("${port}")
     private String port;
-
-    private AtomicInteger atomicInteger = new AtomicInteger(0);
 
     public ZookeeperUtil() {
         log.info("new zookeeperUtil（）");
@@ -137,11 +138,8 @@ public class ZookeeperUtil {
         if (servers == null || servers.isEmpty()) {
             return null;
         }
-        int i = -1;
-        do {
-            i = atomicInteger.get();
-        } while (!atomicInteger.compareAndSet(i, (++i) % servers.size()));
-        return servers.get(atomicInteger.get());
+        LoadBalancer loadBalancer = new RotateLoadBalancer(servers);
+        return loadBalancer.get();
     }
 
 }
